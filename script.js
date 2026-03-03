@@ -1,6 +1,6 @@
 /**
  * ============================================================
- *  STUDIO MÜLLER — Global JavaScript
+ *  Fakhriel Yusmana Shiddiq — Global JavaScript
  *  Swiss Design Portfolio
  * ============================================================
  *  Modules:
@@ -616,12 +616,13 @@
     /* ── Log studio credit in console ─────────────────── */
     if (window.console && window.console.log) {
       console.log(
-        '%c Studio Müller %c Swiss Design Portfolio — Built with precision. No frameworks harmed.',
+        '%c Fakhriel Yusmana Shiddiq %c Swiss Design Portfolio — Built with precision. No frameworks harmed.',
         'background:#E8001C;color:#fff;font-weight:900;padding:4px 8px;font-family:Helvetica Neue,sans-serif;',
         'color:#6B6B6B;font-family:Helvetica Neue,sans-serif;padding:4px;'
       );
     }
 
   });
+
 
 })();
