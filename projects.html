@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <!--PRIMARY META-->
+  <title>My Project</title>
+  <meta name="description" content="Portfolio proyek web development oleh Fakhriel Yusmana Shiddiq. Website modern, cepat, dan terstruktur menggunakan Astro, Tailwind CSS, dan Node.js." />
+  <meta name="keywords" content="Portfolio Web Developer, Project Website, Jasa Pembuatan Website, Web Development Indonesia, Astro JS Developer, Node.js Developer" />
+  <meta name="author" content="Fakhriel Yusmana Shiddiq" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://fakhrieldev.com/projects.html" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+
+    /* ══════════════════════════════════════════════════════
+       FILTER BAR — RESPONSIVE FIX
+       Root cause: max-content + padding besar = tombol
+       terpotong / tenggelam di mobile.
+       Fix: flex:1 agar tombol isi penuh, padding mobile-first.
+    ══════════════════════════════════════════════════════ */
+
+    .filter-bar {
+      display: flex;
+      width: 100%;                  /* isi lebar kontainer */
+      border: 1px solid var(--ink);
+      overflow-x: auto;
+      overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      flex-wrap: nowrap;
+    }
+    .filter-bar::-webkit-scrollbar { display: none; }
+
+    .filter-btn {
+      /* Tombol tumbuh merata, tidak boleh < 0 */
+      flex: 1 1 0;
+      min-width: 0;
+
+      /* Mobile-first: padding & font kecil agar muat */
+      padding: 0.6rem 0.5rem;
+      font-size: 0.6rem;
+      letter-spacing: 0.06em;
+
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--mid-gray);
+      background: transparent;
+      border: none;
+      border-right: 1px solid var(--ink);
+      white-space: nowrap;
+      cursor: pointer;
+      line-height: 1.3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.3rem;
+      transition: background var(--dur-fast), color var(--dur-fast);
+      /* Pastikan teks tidak terpotong vertikal */
+      min-height: 2.75rem;
+    }
+    .filter-btn:last-child { border-right: none; }
+    .filter-btn:hover { color: var(--ink); background: rgba(0,0,0,0.04); }
+    .filter-btn.active { background: var(--ink); color: var(--paper); }
+    .filter-btn.active:hover { background: var(--red); }
+
+    /* Badge angka */
+    .project-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 1.1rem;
+      height: 1.1rem;
+      padding: 0 0.15rem;
+      background: var(--red);
+      color: var(--white);
+      font-size: 0.5rem;
+      font-weight: 700;
+      letter-spacing: 0;
+      flex-shrink: 0;
+    }
+
+    /* ── 480px — ponsel menengah (iPhone SE landscape, dll) */
+    @media (min-width: 480px) {
+      .filter-btn {
+        padding: 0.7rem 0.875rem;
+        font-size: 0.65rem;
+        letter-spacing: 0.08em;
+        gap: 0.4rem;
+      }
+      .project-count {
+        min-width: 1.25rem;
+        height: 1.25rem;
+        font-size: 0.55rem;
+      }
+    }
+
+    /* ── 640px — tablet kecil / landscape ponsel besar */
+    @media (min-width: 640px) {
+      .filter-btn {
+        padding: 0.8rem 1.25rem;
+        font-size: 0.7rem;
+        letter-spacing: 0.1em;
+      }
+    }
+
+    /* ── 768px ke atas — tablet besar & desktop */
+    @media (min-width: 768px) {
+      .filter-btn {
+        padding: 0.875rem 1.75rem;
+        font-size: var(--step--1);
+        letter-spacing: 0.12em;
+        gap: 0.5rem;
+      }
+      .project-count {
+        min-width: 1.5rem;
+        height: 1.5rem;
+        font-size: 0.6rem;
+        padding: 0 0.3rem;
+      }
+    }
+
+    /* ══════════════════════════════════════════════════════
+       CARD & GRID
+    ══════════════════════════════════════════════════════ */
+    .project-card.hidden { display: none; }
+
+    .no-results {
+      grid-column: 1/-1;
+      padding: var(--sp-7) var(--sp-4);
+      text-align: center;
+      display: none;
+    }
+    .no-results.visible { display: block; }
+    .no-results h3 { font-size: var(--step-3); color: var(--light-gray); margin-bottom: var(--sp-2); }
+
+    /* ══════════════════════════════════════════════════════
+       MODAL
+    ══════════════════════════════════════════════════════ */
+    .modal-image-wrap {
+      position: relative;
+      background: var(--light-gray);
+      overflow: hidden;
+    }
+    .modal-image-wrap img {
+      width: 100%;
+      aspect-ratio: 16/9;
+      object-fit: cover;
+      display: block;
+      filter: grayscale(20%);
+    }
+    .modal-links {
+      display: flex;
+      gap: var(--sp-2);
+      padding: var(--sp-3) var(--sp-4);
+      border-top: 1px solid var(--ink);
+      background: rgba(0,0,0,0.03);
+      flex-wrap: wrap;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       CARD STAGGER + PNG THUMBNAIL
+    ══════════════════════════════════════════════════════ */
+    .project-card {
+      opacity: 0;
+      transform: translateY(20px);
+      transition:
+        opacity 0.5s var(--ease-out),
+        transform 0.5s var(--ease-out),
+        background var(--dur-fast),
+        color var(--dur-fast);
+    }
+    .project-card.revealed { opacity: 1; transform: translateY(0); }
+
+    .project-thumb { background: var(--light-gray); }
+    .project-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform var(--dur-slow) var(--ease-out), filter var(--dur-slow);
+      filter: grayscale(60%);
+    }
+    .project-card:hover .project-thumb img {
+      transform: scale(1.04);
+      filter: grayscale(0%);
+    }
+
+  </style>
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": "Web Development Projects",
+  "url": "https://fakhrieldev.com/projects.html",
+  "description": "A collection of web development projects built by Fakhriel Yusmana Shiddiq using modern technologies like Astro, Tailwind CSS, and Node.js.",
+  "author": {
+    "@type": "Person",
+    "name": "Fakhriel Yusmana Shiddiq"
+  }
+}
+</script>
+</head>
+<body>
+
+  <!-- SCROLL PROGRESS -->
+  <div class="scroll-progress" aria-hidden="true">
+    <div class="scroll-progress-bar" id="scrollBar"></div>
+  </div>
+
+  <!-- ══ HEADER ══════════════════════════════════════════════ -->
+  <header class="site-header" role="banner">
+    <div class="container">
+      <a href="index.html" class="logo" aria-label="Studio Müller — Home">
+        <span class="logo-mark">Fakhriel<span>.</span>YS</span>
+        <span class="logo-sub">Web Development</span>
+      </a>
+      <nav class="nav-desktop" aria-label="Primary navigation">
+        <a href="index.html">Home</a>
+        <a href="about.html">About</a>
+        <a href="projects.html" class="active">Projects</a>
+        <a href="contact.html">Contact</a>
+        <a href="contact.html" class="nav-cta">
+          <span class="btn btn-primary">
+            Hire Us
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M3 8h10M9 4l4 4-4 4"/>
+            </svg>
+          </span>
+        </a>
+      </nav>
+      <button class="burger" id="burgerBtn" aria-label="Open navigation menu" aria-expanded="false" aria-controls="navOverlay">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ══ MOBILE OVERLAY ═══════════════════════════════════════ -->
+  <nav class="nav-overlay" id="navOverlay" aria-label="Mobile navigation" aria-hidden="true">
+    <div class="nav-overlay-top">
+      <span class="nav-overlay-logo">Fakhriel<span>.</span>YS</span>
+      <button class="burger open" id="overlayClose" aria-label="Close navigation menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+    <ul class="nav-overlay-links" role="list">
+      <li><a href="index.html"><span class="num">01</span>Home</a></li>
+      <li><a href="about.html"><span class="num">02</span>About</a></li>
+      <li><a href="projects.html" class="active"><span class="num">03</span>Projects</a></li>
+      <li><a href="contact.html"><span class="num">04</span>Contact</a></li>
+    </ul>
+    <div class="nav-overlay-bottom">
+      <span class="caption" style="color:rgba(255,255,255,0.3);letter-spacing:0.12em;text-transform:uppercase;font-size:0.65rem;">Follow Us</span>
+      <div class="nav-overlay-socials">
+        <a href="https://github.com/Fakhriel" aria-label="GitHub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg></a>
+        <a href="https://x.com/FakhrielS5625" aria-label="Twitter / X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+        <a href="https://www.linkedin.com/in/fakhriel-yusmana-shiddiq-98a49630b?utm_source=share_via&utm_content=profile&utm_medium=member_android" aria-label="Linkedin"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg></a>
+        <a href="https://dribbble.com/fakhriel-yusmana-shiddiq" aria-label="Dribbble"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 24C5.385 24 0 18.615 0 12S5.385 0 12 0s12 5.385 12 12-5.385 12-12 12zm10.12-10.358c-.35-.11-3.17-.953-6.384-.438 1.34 3.684 1.887 6.684 1.992 7.308a10.517 10.517 0 004.395-6.87zm-6.115 7.808c-.153-.9-.75-4.032-2.19-7.77l-.066.02c-5.79 2.015-7.86 6.025-8.048 6.404a10.518 10.518 0 006.29 2.063 10.6 10.6 0 004.014-.717zm-9.777-2.963c.247-.617 3.156-5.552 8.4-7.225.107-.035.213-.07.32-.1a28.4 28.4 0 00-.325-.73c-5.088 1.64-10.01 1.586-10.462 1.573a10.56 10.56 0 002.067 6.482zm-2.11-8.138c.466.01 4.705.016 9.46-1.35a87.65 87.65 0 00-3.817-5.86 10.56 10.56 0 00-5.643 7.21zm7.96-9.172a93.03 93.03 0 013.83 5.855c3.65-1.365 5.19-3.44 5.38-3.702A10.508 10.508 0 0014.178 1.28zm7.278 4.583c-.22.308-1.92 2.507-5.72 4.056a37.8 37.8 0 01.34.748c.085.2.164.403.24.604 3.38-.425 6.744.258 7.086.33a10.566 10.566 0 00-1.946-5.738z"/></svg></a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ══ MODAL ════════════════════════════════════════════════ -->
+  <div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-hidden="true">
+    <div class="modal" id="modal">
+      <div class="modal-header">
+        <div class="modal-title-block">
+          <span class="modal-num" id="modalNum">01 — Brand Identity</span>
+          <h2 class="modal-title" id="modalTitle">Project Title</h2>
+        </div>
+        <button class="modal-close" id="modalClose" aria-label="Close modal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="1.5rem" height="1.5rem" aria-hidden="true">
+            <path d="M6 6l12 12M6 18L18 6"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-image-wrap" id="modalImageWrap">
+        <img id="modalImage" src="" alt="" />
+      </div>
+      <div class="modal-body">
+        <div>
+          <p class="modal-desc" id="modalDesc"></p>
+        </div>
+        <div class="modal-meta">
+          <div class="modal-meta-group">
+            <label>Category</label>
+            <span id="modalCategory" style="font-weight:700;font-size:var(--step-0);text-transform:uppercase;letter-spacing:0.05em;"></span>
+          </div>
+          <div class="modal-meta-group">
+            <label>Year</label>
+            <span id="modalYear" style="font-weight:700;font-size:var(--step-0);"></span>
+          </div>
+          <div class="modal-meta-group">
+            <label>Tech Stack</label>
+            <div class="modal-tags" id="modalTags"></div>
+          </div>
+          <div class="modal-meta-group">
+            <label>Client</label>
+            <span id="modalClient" style="font-weight:700;font-size:var(--step-0);"></span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-links">
+        <a href="#" id="modalLiveLnk" class="btn btn-primary" target="_blank" rel="noopener">
+          Live Site
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="1em" height="1em" aria-hidden="true"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
+        </a>
+        <a href="#" id="modalCodeLnk" class="btn btn-outline" target="_blank" rel="noopener">
+          Source Code
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="1em" height="1em" aria-hidden="true"><path d="M8 6l-4 6 4 6M16 6l4 6-4 6M14 4l-4 16"/></svg>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ MAIN ════════════════════════════════════════════════ -->
+  <main id="main-content">
+
+    <!-- PAGE HERO -->
+    <section class="page-hero" data-page-num="03" aria-labelledby="page-heading">
+      <div class="container">
+        <nav class="page-hero-breadcrumb" aria-label="Breadcrumb">
+          <a href="index.html">Home</a>
+          <span class="sep" aria-hidden="true">—</span>
+          <span aria-current="page">Projects</span>
+        </nav>
+        <h1 id="page-heading">Selected<br>Work</h1>
+        <p class="page-hero-desc">
+          Projects across brand identity and UI/UX design. Every one built on a grid. Every one built to last.
+        </p>
+      </div>
+    </section>
+
+    <!-- SECTION: FILTER + GRID -->
+    <section class="section" aria-labelledby="projects-heading">
+      <div class="container">
+
+        <div class="section-header fade-up">
+          <div class="section-header-left">
+            <span class="section-number">— 03</span>
+            <h2 id="projects-heading" style="font-size:var(--step-4);">All Projects</h2>
+          </div>
+          <div style="display:flex;align-items:flex-end;">
+            <span class="label text-gray" id="visibleCount">4 projects</span>
+          </div>
+        </div>
+        <div class="fade-up" style="margin-bottom:var(--sp-4);">
+          <div class="filter-bar" role="group" aria-label="Filter projects by category">
+            <button class="filter-btn active" data-filter="all">
+              All
+              <span class="project-count" aria-label="4 projects">3</span>
+            </button>
+            <button class="filter-btn" data-filter="Development">
+              Development
+              <span class="project-count" aria-label="2 projects">3</span>
+            </button>
+            <button class="filter-btn" data-filter="ui">
+              Design
+              <span class="project-count" aria-label="2 projects">0</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- ══ PROJECT GRID ═════════════════════════════════ -->
+        <div class="projects-grid" id="projectsGrid" role="list">
+
+          <!-- CARD 01 — Brand Identity -->
+          <article class="project-card" role="listitem"
+            data-category="Development"
+            data-index="01"
+            data-title="Landing page Portfolio"
+            data-category-label="Development"
+            data-year="2026"
+            data-client="Portfolio Landing page Photograph"
+            data-desc="Complete Landing page Portfolio Photograph. Logo, typographic guidelines, and digital-first style guide."
+            data-stack='["Typography","Brand Systems","Html","Grid Theory","Style CSS","JS clean"]'
+            data-thumb-img="assets/project/portofolio.png"
+            data-modal-img="assets/project/portofolio.png"
+            data-live="https://fakhriel.github.io/Free-landing-page-photograpy/"
+            data-code="https://github.com/Fakhriel/Free-landing-page-photograpy.git"
+          >
+            <div class="project-thumb" aria-hidden="true">
+              <img src="assets/project/portofolio.png" alt="Landing Page Portfolio Photograph — Brand Identity" />
+              <div class="project-thumb-overlay">
+                <span class="project-thumb-overlay-text">View Detail</span>
+              </div>
+            </div>
+            <div class="project-body">
+              <span class="project-index">01</span>
+              <h3 class="project-title">Landing Page Photograph</h3>
+              <p class="project-desc">Complete Landing page Portfolio Photograph. Logo, typographic guidelines, and digital-first style guide.</p>
+              <div class="project-stack">
+                <span class="tag">Typography</span>
+                <span class="tag">JS clean</span>
+                <span class="tag">Html5</span>
+                <span class="tag">Modular CSS</span>
+              </div>
+            </div>
+            <div class="project-footer">
+              <span class="caption">2026</span>
+              <button class="view-detail-btn" aria-label="View details for Landing Page Photograph">
+                View Detail
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="1em" height="1em" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+              </button>
+            </div>
+          </article>
+
+          <!-- CARD 02 — UI/UX -->
+          <article class="project-card" role="listitem"
+            data-category="Development"
+            data-index="02"
+            data-title="Company Profile"
+            data-category-label="Development"
+            data-year="2025"
+            data-client="Fery Yusman"
+            data-desc="End-to-end UX design and frontend implementation of a Company Profile for a Bussiness Fire Alarm"
+            data-stack='["HTML","Vanilla JS","CSS Grid","SVG Charts","FORMSUBMIT"]'
+            data-thumb-img="assets/project/webfattan.png"
+            data-modal-img="assets/project/webfattan.png"
+            data-live="https://www.bing.com/ck/a?!&&p=a626182bb9e642149fc1ceb16863731738194022a4d2675f9e16eb3c60674439JmltdHM9MTc3MjQ5NjAwMA&ptn=3&ver=2&hsh=4&fclid=3ae67fb3-9a3a-6d35-2721-691a9ba66c3c&psq=safety+alarm+indonesia&u=a1aHR0cHM6Ly9zYWZldHlhbGFybWluZG9uZXNpYS5jby5pZC8"
+
+          >
+            <div class="project-thumb" aria-hidden="true">
+              <img src="assets/project/webfattan.png" alt="Fery Yusman Company Profile — Development" />
+              <div class="project-thumb-overlay">
+                <span class="project-thumb-overlay-text">View Detail</span>
+              </div>
+            </div>
+            <div class="project-body">
+              <span class="project-index">02</span>
+              <h3 class="project-title">Fery Yusman Company Profile</h3>
+              <p class="project-desc">End-to-end UX design and frontend implementation of a Company Profile for a Bussiness Fire Alarm</p>
+              <div class="project-stack">
+                <span class="tag">HTML</span>
+                <span class="tag">Vanilla JS</span>
+                <span class="tag">CSS Grid</span>
+                <span class="tag">FORMSUBMIT</span>
+              </div>
+            </div>
+            <div class="project-footer">
+              <span class="caption">2024</span>
+              <button class="view-detail-btn" aria-label="View details for Fery Yusman Company Profile">
+                View Detail
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="1em" height="1em" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+              </button>
+            </div>
+          </article>
+
+          <!-- CARD 03 — Brand Identity -->
+          <article class="project-card" role="listitem"
+            data-category="Development"
+            data-index="03"
+            data-title="Reservation Villa"
+            data-category-label="Company"
+            data-year="2026"
+            data-client="Reservation Villa"
+            data-desc="A Complete Frontend Reservation Villa, Clean Ui/Ux, Support Payment Gateway Global & Local."
+            data-stack='["Typography","HTML5","CSS MODULAR","JAVASCRIPT ES6"]'
+            data-thumb-img="assets/project/reservillamini.png"
+            data-modal-img="assets/project/reservillamini.png"
+            data-live="https://fakhriel.github.io/landingpage-reservvilla/"
+            data-code="https://github.com/Fakhriel/landingpage-reservvilla.git"
+          >
+            <div class="project-thumb" aria-hidden="true">
+              <img src="assets/project/reservillamini.png" alt="Reservation Villa — Company" />
+              <div class="project-thumb-overlay">
+                <span class="project-thumb-overlay-text">View Detail</span>
+              </div>
+            </div>
+            <div class="project-body">
+              <span class="project-index">03</span>
+              <h3 class="project-title">Reservation Villa</h3>
+              <p class="project-desc">A Complete Frontend Reservation Villa, Clean Ui/Ux, Support Payment Gateway Global & Local.</p>
+              <div class="project-stack">
+                <span class="tag">Typography</span>
+                <span class="tag">HTML5</span>
+                <span class="tag">CSS MODULAR</span>
+                <span class="tag">JAVASCRIPT ES6</span>
+              </div>
+            </div>
+            <div class="project-footer">
+              <span class="caption">2026</span>
+              <button class="view-detail-btn" aria-label="View details for Reservation">
+                View Detail
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="1em" height="1em" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+              </button>
+            </div>
+          </article>
+
+          <!-- CARD 04 — UI/UX -->
+          <!--<article class="project-card" role="listitem"
+            data-category="Development"
+            data-index="04"
+            data-title="Lesen Editorial Platform"
+            data-category-label="Development"
+            data-year="2026"
+            data-client="Lesen Media GmbH"
+            data-desc="UX design for an independent long-form journalism platform. The interface disappears — 65-char line measure, optically corrected body text at 18px/1.75, navigation only visible when needed. Zero visual decoration in the article view. Validated through 200-person user testing over six weeks."
+            data-stack='["UX Research","Figma","Information Architecture","User Testing","CSS Typography","Editorial Design"]'
+            data-thumb-img="images/project-04-thumb.png"
+            data-modal-img="images/project-04-modal.png"
+            data-live="#"
+            data-code="#"
+          >
+            <div class="project-thumb" aria-hidden="true">
+              <img src="images/project-04-thumb.png" alt="Lesen Editorial Platform — UI/UX Design" />
+              <div class="project-thumb-overlay">
+                <span class="project-thumb-overlay-text">View Detail</span>
+              </div>
+            </div>
+            <div class="project-body">
+              <span class="project-index">04</span>
+              <h3 class="project-title">Lesen Editorial Platform</h3>
+              <p class="project-desc">Reading-first UX for long-form journalism. Interface that disappears — 65-char measure, nav only when needed. 200-person tested.</p>
+              <div class="project-stack">
+                <span class="tag">UX Research</span>
+                <span class="tag">Figma</span>
+                <span class="tag">User Testing</span>
+                <span class="tag">CSS Typography</span>
+              </div>
+            </div>
+            <div class="project-footer">
+              <span class="caption">2023</span>
+              <button class="view-detail-btn" aria-label="View details for Lesen Editorial Platform">
+                View Detail
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="1em" height="1em" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+              </button>
+            </div>
+          </article>
+
+          <!-- No results -->
+          <div class="no-results" id="noResults" aria-live="polite">
+            <h3>No Case Study Projects</h3>
+            <p style="color:var(--mid-gray);">Try a different filter.</p>
+          </div>
+
+        </div><!-- /projects-grid -->
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section style="background:var(--red);color:var(--white);padding-block:var(--sp-6);border-top:3px solid var(--ink);">
+      <div class="container" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--sp-4);">
+        <h2 style="font-size:var(--step-5);line-height:0.95;letter-spacing:-0.03em;text-transform:uppercase;color:var(--white);">Next<br>Project</h2>
+        <div>
+          <p style="color:rgba(255,255,255,0.7);max-width:35ch;margin-bottom:var(--sp-3);">Have a brief? We respond to all enquiries within one working day.</p>
+          <a href="contact.html" class="btn" style="background:var(--white);color:var(--red);border-color:var(--white);">
+            Start a Conversation
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true">
+              <path d="M3 8h10M9 4l4 4-4 4"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ══ FOOTER ═══════════════════════════════════════════════ -->
+  <footer class="site-footer" role="contentinfo">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="footer-logo">Fakhriel<span>.</span>YS</div>
+          <p class="footer-tagline">Web Development &amp; Craft By — Ariel</p>
+        </div>
+        <div>
+          <p class="footer-nav-title">Navigation</p>
+          <ul class="footer-nav-list" role="list">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="about.html">About</a></li>
+            <li><a href="projects.html">Projects</a></li>
+            <li><a href="contact.html">Contact</a></li>
+          </ul>
+        </div>
+        <div>
+          <p class="footer-nav-title">Contact</p>
+          <ul class="footer-nav-list" role="list">
+            <li><a href="mailto:fakhrielyusmanashiddiq@gmail.com?subject=Project Inquiry">Email</a></li>
+            <li><a href="https://wa.me/6287809715422" target="_blank">WhatsApp</a></li>
+            <li><a href="https://www.tiktok.com/@fakhriel.yusmana?_r=1&_t=ZS-94M1HI8Jd8D">Projects Logs (tiktok)</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span class="footer-copy">&copy; 2026 Fakhriel Yusmana Shiddiq. All rights reserved.</span>
+        <div class="footer-socials">
+          <a href="https://github.com/Fakhriel" aria-label="GitHub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg></a>
+          <a href="https://x.com/FakhrielS5625" aria-label="Twitter / X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+          <a href="https://www.linkedin.com/in/fakhriel-yusmana-shiddiq-98a49630b?utm_source=share_via&utm_content=profile&utm_medium=member_android" aria-label="LinkedIn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg></a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+
+  <script>
+  (function () {
+    'use strict';
+
+    /* Stagger reveal */
+    var cards = Array.from(document.querySelectorAll('.project-card'));
+    cards.forEach(function (card, i) {
+      setTimeout(function () { card.classList.add('revealed'); }, 80 + i * 100);
+    });
+
+    /* Filter */
+    var filterBtns = document.querySelectorAll('.filter-btn');
+    var noResults  = document.getElementById('noResults');
+    var countBadge = document.getElementById('visibleCount');
+
+    function applyFilter(filter) {
+      var visible = 0;
+      cards.forEach(function (card) {
+        var match = filter === 'all' || card.dataset.category === filter;
+        card.classList.toggle('hidden', !match);
+        if (match) visible++;
+      });
+      if (countBadge) countBadge.textContent = visible === 1 ? '1 project' : visible + ' projects';
+      if (noResults)  noResults.classList.toggle('visible', visible === 0);
+    }
+
+    filterBtns.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        filterBtns.forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        applyFilter(btn.dataset.filter);
+      });
+    });
+
+    /* Modal */
+    var backdrop    = document.getElementById('modalBackdrop');
+    var modalEl     = document.getElementById('modal');
+    var closeBtn    = document.getElementById('modalClose');
+    var modalNum    = document.getElementById('modalNum');
+    var modalTitle  = document.getElementById('modalTitle');
+    var modalDesc   = document.getElementById('modalDesc');
+    var modalCat    = document.getElementById('modalCategory');
+    var modalYear   = document.getElementById('modalYear');
+    var modalTags   = document.getElementById('modalTags');
+    var modalClient = document.getElementById('modalClient');
+    var modalLive   = document.getElementById('modalLiveLnk');
+    var modalCode   = document.getElementById('modalCodeLnk');
+    var modalImage  = document.getElementById('modalImage');
+    var lastFocused = null;
+
+    function openModal(card) {
+      var stack = JSON.parse(card.dataset.stack || '[]');
+      if (modalNum)    modalNum.textContent    = card.dataset.index + ' — ' + card.dataset.categoryLabel;
+      if (modalTitle)  modalTitle.textContent  = card.dataset.title;
+      if (modalDesc)   modalDesc.textContent   = card.dataset.desc;
+      if (modalCat)    modalCat.textContent    = card.dataset.categoryLabel;
+      if (modalYear)   modalYear.textContent   = card.dataset.year;
+      if (modalClient) modalClient.textContent = card.dataset.client;
+      if (modalLive)   modalLive.href          = card.dataset.live  || '#';
+      if (modalCode)   modalCode.href          = card.dataset.code  || '#';
+      if (modalTags) {
+        modalTags.innerHTML = '';
+        stack.forEach(function (t) {
+          var s = document.createElement('span');
+          s.className = 'tag'; s.textContent = t;
+          modalTags.appendChild(s);
+        });
+      }
+      if (modalImage) {
+        modalImage.src = card.dataset.modalImg || '';
+        modalImage.alt = card.dataset.title + ' — ' + card.dataset.categoryLabel;
+      }
+      backdrop.classList.add('open');
+      backdrop.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('no-scroll');
+      lastFocused = document.activeElement;
+      setTimeout(function () { if (closeBtn) closeBtn.focus(); }, 100);
+    }
+
+    function closeModal() {
+      backdrop.classList.remove('open');
+      backdrop.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('no-scroll');
+      if (lastFocused) lastFocused.focus();
+    }
+
+    cards.forEach(function (card) {
+      card.addEventListener('click', function () { openModal(card); });
+      var btn = card.querySelector('.view-detail-btn');
+      if (btn) btn.addEventListener('click', function (e) { e.stopPropagation(); });
+    });
+
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    backdrop.addEventListener('click', function (e) { if (e.target === backdrop) closeModal(); });
+
+    document.addEventListener('keydown', function (e) {
+      if (!backdrop.classList.contains('open')) return;
+      if (e.key === 'Escape') { closeModal(); return; }
+      if (e.key === 'Tab') {
+        var focusable = modalEl.querySelectorAll('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])');
+        var first = focusable[0], last = focusable[focusable.length - 1];
+        if (e.shiftKey) { if (document.activeElement === first) { e.preventDefault(); last.focus(); } }
+        else            { if (document.activeElement === last)  { e.preventDefault(); first.focus(); } }
+      }
+    });
+
+  })();
+  </script>
+
+</body>
+</html>
