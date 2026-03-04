@@ -14,13 +14,6 @@
   <link rel="stylesheet" href="style.css" />
   <style>
 
-    /* ══════════════════════════════════════════════════════
-       FILTER BAR — RESPONSIVE FIX
-       Root cause: max-content + padding besar = tombol
-       terpotong / tenggelam di mobile.
-       Fix: flex:1 agar tombol isi penuh, padding mobile-first.
-    ══════════════════════════════════════════════════════ */
-
     .filter-bar {
       display: flex;
       width: 100%;                  /* isi lebar kontainer */
@@ -342,7 +335,7 @@
             <h2 id="projects-heading" style="font-size:var(--step-4);">All Projects</h2>
           </div>
           <div style="display:flex;align-items:flex-end;">
-            <span class="label text-gray" id="visibleCount">4 projects</span>
+            <span class="label text-gray" id="visibleCount">3 projects</span>
           </div>
         </div>
         <div class="fade-up" style="margin-bottom:var(--sp-4);">
@@ -487,6 +480,16 @@
               </button>
             </div>
           </article>
+          <!-- No results -->
+          <div class="no-results" id="noResults" aria-live="polite">
+            <h3>No Case Study Projects</h3>
+            <p style="color:var(--mid-gray);">Try a different filter.</p>
+          </div>
+
+        </div><!-- /projects-grid -->
+      </div>
+    </section>
+
     <!-- CTA -->
     <section style="background:var(--red);color:var(--white);padding-block:var(--sp-6);border-top:3px solid var(--ink);">
       <div class="container" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--sp-4);">
@@ -654,5 +657,4 @@
   </script>
 
 </body>
-
 </html>
